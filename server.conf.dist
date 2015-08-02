@@ -1,5 +1,16 @@
 [default]
+# specify a port (and optionally a hostname)
+serve-address = :80
 
+# when true, ssl-cert and ssl-key must be files
+use-ssl = false
+ssl-cert = server.crt
+ssl-key = server.key
+
+# prefix added to all feeds
+path-prefix = /feed
+
+# feed can be reached at /feed/giantbombcast-premium
 [giantbombcast-premium]
 feed = http://www.giantbomb.com/podcast-xml/premiumbombcast/
 username = your-username-here
