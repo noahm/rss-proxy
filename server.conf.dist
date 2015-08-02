@@ -1,0 +1,6 @@
+[default]
+
+[giantbombcast-premium]
+feed = http://www.giantbomb.com/podcast-xml/premiumbombcast/
+username = your-username-here
+password = your-password-here
