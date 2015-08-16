@@ -6,17 +6,24 @@ import (
 	"net/http"
 	"io/ioutil"
 	"github.com/gosimple/conf"
+	"github.com/noahm/rss-proxy/rss"
 )
 
 var client *http.Client
 var config *conf.Config
 var pathPrefix string
 
+// type Filter struct {
+// 	Field string
+// 	Pattern string
+// }
+
 type Feed struct {
 	Name string
 	url string
 	username string
 	password string
+	// filter Filter
 }
 
 func NewFeed(name, url, username, password string) *Feed {
@@ -48,8 +55,22 @@ func (f *Feed)ServeHTTP(respWriter http.ResponseWriter, req *http.Request) {
 
 	// copy feed content
 	respWriter.WriteHeader(feedResp.StatusCode)
-	buf, _ := ioutil.ReadAll(feedResp.Body)
-	respWriter.Write(buf)
+	if (feedResp.StatusCode != 200) {
+		buf, _ := ioutil.ReadAll(feedResp.Body)
+		respWriter.Write(buf)
+	} else {
+		feed, _ := rss.ParseFromReader(feedResp.Body)
+		fmt.Printf("First item: %v\r\n", feed.Channel.Items[0])
+		// selectedItems := []rss.Item{}
+		// for _, item := range feed.Channel.Items {
+		// 	if item.Guid == "http://v.giantbomb.com/2015/08/14/mc_mgs04_ep15_08132015_34lqov67_4000.mp4" {
+		// 		selectedItems = append(selectedItems, item)
+		// 	}
+		// }
+		// feed.Channel.Items = selectedItems
+		buf, _ := feed.ToBytes()
+		respWriter.Write(buf)
+	}
 }
 
 func unknownFeed(respWriter http.ResponseWriter, req *http.Request) {
