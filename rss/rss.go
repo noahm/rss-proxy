@@ -13,6 +13,7 @@ package rss
 import (
     "encoding/xml"
     "io"
+    "reflect"
 )
 
 type Rss struct {
@@ -46,6 +47,12 @@ type Item struct {
     Duration    string `xml:"http://www.itunes.com/dtds/podcast-1.0.dtd duration"`
     Image       string `xml:"http://www.itunes.com/dtds/podcast-1.0.dtd image"`
     Enclosures  []Enc  `xml:"enclosure"`
+}
+
+func (item *Item) GetField(fieldName string) string {
+    r := reflect.ValueOf(item)
+    f := reflect.Indirect(r).FieldByName(fieldName)
+    return string(f.String())
 }
 
 type Enc struct {

@@ -13,5 +13,26 @@ path-prefix = /feed
 # feed can be reached at /feed/giantbombcast-premium
 [giantbombcast-premium]
 feed = http://www.giantbomb.com/podcast-xml/premiumbombcast/
-username = your-username-here
-password = your-password-here
+username = redacted
+password = redacted
+
+# feed can be reached at /feed/giantbomb-videos-hd
+[giantbomb-videos-hd]
+feed = http://www.giantbomb.com/videos/feed/hd/
+username = redacted
+password = redacted
+
+# optionally, you may filter the items that will be proxied
+# in this example, any items whose "guid" tag matches the regex will be excluded
+# "filter-include" is the other valid config directive that may be used with filter-field
+# see https://github.com/google/re2/wiki/Syntax for details on the regex syntax avilable
+filter-field = Guid
+filter-exclude = http://.*/(\d+/){3}tr_
+
+[giantbomb-danswers]
+feed = http://www.giantbomb.com/podcast-xml/premium/
+username = redacted
+password = redacted
+# Another example of feed filtering, this time only items matching the filter will be in the resulting feed
+filter-field = Title
+filter-include = ^Danswers

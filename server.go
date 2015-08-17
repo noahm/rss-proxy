@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"fmt"
+	"regexp"
 	"net/http"
 	"io/ioutil"
 	"github.com/gosimple/conf"
@@ -13,17 +14,21 @@ var client *http.Client
 var config *conf.Config
 var pathPrefix string
 
-// type Filter struct {
-// 	Field string
-// 	Pattern string
-// }
+const FILTER_INCLUDE = 1
+const FILTER_EXCLUDE = 2
+
+type Filter struct {
+	FieldName string
+	Type int
+	Pattern *regexp.Regexp
+}
 
 type Feed struct {
 	Name string
 	url string
 	username string
 	password string
-	// filter Filter
+	filter *Filter
 }
 
 func NewFeed(name, url, username, password string) *Feed {
@@ -32,10 +37,19 @@ func NewFeed(name, url, username, password string) *Feed {
 		url: url,
 		username: username,
 		password: password,
+		filter: nil,
 	}
 	echo("Registering handler for "+pathPrefix+name)
 	http.Handle(pathPrefix+name, f)
 	return f
+}
+
+func (f *Feed)AddFilter(t int, field string, pattern string) {
+	f.filter = &Filter{
+		FieldName: field,
+		Type: t,
+		Pattern: regexp.MustCompile(pattern),
+	}
 }
 
 func (f *Feed)ServeHTTP(respWriter http.ResponseWriter, req *http.Request) {
@@ -53,21 +67,23 @@ func (f *Feed)ServeHTTP(respWriter http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	// copy feed content
 	respWriter.WriteHeader(feedResp.StatusCode)
-	if (feedResp.StatusCode != 200) {
+	if (feedResp.StatusCode != 200 || f.filter == nil) {
+		// copy feed content without parsing
 		buf, _ := ioutil.ReadAll(feedResp.Body)
 		respWriter.Write(buf)
 	} else {
+		// parse and filter feed content
 		feed, _ := rss.ParseFromReader(feedResp.Body)
-		fmt.Printf("First item: %v\r\n", feed.Channel.Items[0])
-		// selectedItems := []rss.Item{}
-		// for _, item := range feed.Channel.Items {
-		// 	if item.Guid == "http://v.giantbomb.com/2015/08/14/mc_mgs04_ep15_08132015_34lqov67_4000.mp4" {
-		// 		selectedItems = append(selectedItems, item)
-		// 	}
-		// }
-		// feed.Channel.Items = selectedItems
+		selectedItems := []rss.Item{}
+		for _, item := range feed.Channel.Items {
+			match := f.filter.Pattern.MatchString(item.GetField(f.filter.FieldName))
+			if ( match && f.filter.Type == FILTER_INCLUDE) ||
+			   (!match && f.filter.Type == FILTER_EXCLUDE) {
+				selectedItems = append(selectedItems, item)
+			}
+		}
+		feed.Channel.Items = selectedItems
 		buf, _ := feed.ToBytes()
 		respWriter.Write(buf)
 	}
@@ -79,7 +95,7 @@ func unknownFeed(respWriter http.ResponseWriter, req *http.Request) {
 }
 
 func echo(s string) {
-	fmt.Println(s+"\r")
+	fmt.Println(s)
 }
 
 func main() {
@@ -94,6 +110,9 @@ func main() {
 
 	// read in configured feeds
 	feeds := make([]*Feed, 0)
+	var newFeed *Feed
+	var filterType int
+	var filterPattern string
 	for _, section := range config.Sections() {
 		if section == "default" {
 			continue
@@ -101,12 +120,27 @@ func main() {
 		feed, _ := config.String(section, "feed")
 		username, _ := config.String(section, "username")
 		password, _ := config.String(section, "password")
-		feeds = append(feeds, NewFeed(
+		newFeed = NewFeed(
 			section,
 			feed,
 			username,
 			password,
-		))
+		)
+		filterField, _ := config.String(section, "filter-field")
+		if filterField != "" {
+			filterPattern, _ = config.String(section, "filter-include")
+			if filterPattern == "" {
+				filterPattern, _ = config.String(section, "filter-exclude")
+				if filterPattern == "" {
+					panic("No filter-include or filter-exclude patterns include with filter-field directive in section: "+section)
+				}
+				filterType = FILTER_EXCLUDE
+			} else {
+				filterType = FILTER_INCLUDE
+			}
+			newFeed.AddFilter(filterType, filterField, filterPattern)
+		}
+		feeds = append(feeds, newFeed)
 	}
 
 	// start server
