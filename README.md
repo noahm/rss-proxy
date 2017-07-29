@@ -1,6 +1,6 @@
 # RSS Proxy
 
-A simple proxy server for RSS feeds.
+A simple proxy server for RSS feeds. RIP Yahoo Pipes.
 
 Supports serving protected feeds to clients without support
 for basic HTTP auth by injecting into the request. (Overcast on iOS)
