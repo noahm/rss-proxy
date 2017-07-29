@@ -4,6 +4,7 @@ import (
 	"log"
 	"fmt"
 	"regexp"
+	"strings"
 	"net/http"
 	"io/ioutil"
 	"github.com/gosimple/conf"
@@ -62,8 +63,10 @@ func (f *Feed)ServeHTTP(respWriter http.ResponseWriter, req *http.Request) {
 	defer feedResp.Body.Close()
 	// copy headers
 	for field, values := range feedResp.Header {
-		for _, value := range values {
-			respWriter.Header().Add(field, value)
+		if (strings.ToLower(field) != "content-length") {
+			for _, value := range values {
+				respWriter.Header().Add(field, value)
+			}
 		}
 	}
 
