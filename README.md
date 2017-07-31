@@ -3,12 +3,12 @@
 A simple proxy server for RSS feeds. RIP Yahoo Pipes.
 
 Supports serving protected feeds to clients without support
-for basic HTTP auth by injecting into the request. (Overcast on iOS)
+for basic HTTP auth by injecting into the request (Overcast on iOS).
 
-Supports filtering RSS feed items out of the respopnse to hide items,
+Supports filtering RSS feed items out of the response to hide items,
 matching regular expressions against specific fields on items.
 
-## Useage
+## Usage
 
   $ cp server.conf.dist server.conf
 
