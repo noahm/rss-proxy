@@ -77,14 +77,19 @@ func (f *Feed)ServeHTTP(respWriter http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	respWriter.WriteHeader(feedResp.StatusCode)
 	if (feedResp.StatusCode != 200 || f.filter == nil) {
 		// copy feed content without parsing
+		respWriter.WriteHeader(feedResp.StatusCode)
 		buf, _ := ioutil.ReadAll(feedResp.Body)
 		respWriter.Write(buf)
 	} else {
 		// parse and filter feed content
-		feed, _ := rss.ParseFromReader(feedResp.Body)
+		feed, err := rss.ParseFromReader(feedResp.Body)
+		if err != nil {
+				echo("Error parsing feed: " + err.Error())
+				respWriter.WriteHeader(http.StatusInternalServerError)
+				return
+		}
 		selectedItems := []rss.Item{}
 		for _, item := range feed.Channel.Items {
 			match := f.filter.Pattern.MatchString(item.GetField(f.filter.FieldName))
@@ -95,6 +100,7 @@ func (f *Feed)ServeHTTP(respWriter http.ResponseWriter, req *http.Request) {
 		}
 		feed.Channel.Items = selectedItems
 		buf, _ := feed.ToBytes()
+		respWriter.WriteHeader(feedResp.StatusCode)
 		respWriter.Write(buf)
 	}
 }
