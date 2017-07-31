@@ -60,7 +60,9 @@ func (f *Feed)ServeHTTP(respWriter http.ResponseWriter, req *http.Request) {
 
 	// request feed from remote
 	feedReq, _ := http.NewRequest("GET", f.url, nil)
-	feedReq.SetBasicAuth(f.username, f.password)
+	if (f.username != "") {
+		feedReq.SetBasicAuth(f.username, f.password)
+	}
 	if (f.agent != "") {
 		feedReq.Header.Set("User-Agent", f.agent)
 	}
