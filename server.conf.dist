@@ -10,6 +10,9 @@ ssl-key = server.key
 # prefix added to all feeds
 path-prefix = /feed
 
+# optionally specify a user-agent to be used for requests
+#user-agent = Mozilla/5.0 (Windows NT 6.1; rv:31.0) Gecko/20100101 Firefox/31.0
+
 # feed can be reached at /feed/giantbombcast-premium
 [giantbombcast-premium]
 feed = http://www.giantbomb.com/podcast-xml/premiumbombcast/
@@ -28,6 +31,9 @@ password = redacted
 # see https://github.com/google/re2/wiki/Syntax for details on the regex syntax avilable
 filter-field = Guid
 filter-exclude = http://.*/(\d+/){3}tr_
+
+# optionally, you may specify a user-agent - it will override the one specified above
+#user-agent = Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36
 
 [giantbomb-danswers]
 feed = http://www.giantbomb.com/podcast-xml/premium/

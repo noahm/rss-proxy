@@ -29,15 +29,17 @@ type Feed struct {
 	url string
 	username string
 	password string
+	agent string
 	filter *Filter
 }
 
-func NewFeed(name, url, username, password string) *Feed {
+func NewFeed(name, url, username, password, agent string) *Feed {
 	f := &Feed{
 		Name: name,
 		url: url,
 		username: username,
 		password: password,
+		agent: agent,
 		filter: nil,
 	}
 	echo("Registering handler for "+pathPrefix+name)
@@ -58,7 +60,12 @@ func (f *Feed)ServeHTTP(respWriter http.ResponseWriter, req *http.Request) {
 
 	// request feed from remote
 	feedReq, _ := http.NewRequest("GET", f.url, nil)
-	feedReq.SetBasicAuth(f.username, f.password)
+	if (f.username != "") {
+		feedReq.SetBasicAuth(f.username, f.password)
+	}
+	if (f.agent != "") {
+		feedReq.Header.Set("User-Agent", f.agent)
+	}
 	feedResp, _ := client.Do(feedReq)
 	defer feedResp.Body.Close()
 	// copy headers
@@ -70,14 +77,19 @@ func (f *Feed)ServeHTTP(respWriter http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	respWriter.WriteHeader(feedResp.StatusCode)
 	if (feedResp.StatusCode != 200 || f.filter == nil) {
 		// copy feed content without parsing
+		respWriter.WriteHeader(feedResp.StatusCode)
 		buf, _ := ioutil.ReadAll(feedResp.Body)
 		respWriter.Write(buf)
 	} else {
 		// parse and filter feed content
-		feed, _ := rss.ParseFromReader(feedResp.Body)
+		feed, err := rss.ParseFromReader(feedResp.Body)
+		if err != nil {
+				echo("Error parsing feed: " + err.Error())
+				respWriter.WriteHeader(http.StatusInternalServerError)
+				return
+		}
 		selectedItems := []rss.Item{}
 		for _, item := range feed.Channel.Items {
 			match := f.filter.Pattern.MatchString(item.GetField(f.filter.FieldName))
@@ -88,6 +100,7 @@ func (f *Feed)ServeHTTP(respWriter http.ResponseWriter, req *http.Request) {
 		}
 		feed.Channel.Items = selectedItems
 		buf, _ := feed.ToBytes()
+		respWriter.WriteHeader(feedResp.StatusCode)
 		respWriter.Write(buf)
 	}
 }
@@ -123,11 +136,16 @@ func main() {
 		feed, _ := config.String(section, "feed")
 		username, _ := config.String(section, "username")
 		password, _ := config.String(section, "password")
+		agent, err := config.String(section, "user-agent")
+		if (err != nil) {
+			agent, _ = config.String("", "user-agent")
+		}
 		newFeed = NewFeed(
 			section,
 			feed,
 			username,
 			password,
+			agent,
 		)
 		filterField, _ := config.String(section, "filter-field")
 		if filterField != "" {
